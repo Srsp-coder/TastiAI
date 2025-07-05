@@ -1,12 +1,19 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 
-function MealResponse({ response, onRegenerate, onConfirm }) {
+function MealResponse({ response, onRegenerate, onConfirm, scrollRef }) {
   const [confirmed, setConfirmed] = useState(false);
   const [ingredients, setIngredients] = useState(null);
   const [groceryMatches, setGroceryMatches] = useState([]);
   useEffect(() => {
     setConfirmed(false);
     setIngredients(null);
+    setTimeout(() => {
+      if (scrollRef?.current) {
+        scrollRef.current.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    }, 100);
   }, [response]);
   if (!response) return null;
 
@@ -50,6 +57,7 @@ function MealResponse({ response, onRegenerate, onConfirm }) {
   const handleNo = () => {
     setConfirmed(false);
     setIngredients(null);
+    setGroceryMatches([]);
     if (typeof onRegenerate === "function") {
       onRegenerate(); // parent triggers new plan
     }

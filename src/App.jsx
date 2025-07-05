@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import axios from "axios";
 import "./App.css";
 import ImageUpload from "./components/ImageUpload";
@@ -7,6 +7,7 @@ import SendIcon from "@mui/icons-material/Send";
 import QueryResponse from "./components/Response";
 import MealResponse from "./components/MealResponse";
 function App() {
+  const scrollRef = useRef(null);
   const [text, setText] = useState("");
   const [response, setResponse] = useState("");
   const [imageFile, setImageFile] = useState(null);
@@ -104,6 +105,7 @@ function App() {
           lang="en-IN"
         /> */}
               <div
+                ref={scrollRef}
                 style={{
                   height: "400px",
                   overflowY: "scroll" /* 👈 Always shows vertical scrollbar */,
@@ -119,6 +121,7 @@ function App() {
                   onConfirm={(ingredients) =>
                     handleUserDecision("yes", ingredients)
                   }
+                  scrollRef={scrollRef}
                 />
               </div>
             </div>
