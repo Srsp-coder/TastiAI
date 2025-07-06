@@ -230,7 +230,7 @@ Your job is to understand any user request related to meal planning and suggest 
 - dietary preferences (e.g., vegetarian, high protein),
 - budget constraints or quick meals.
 
-Always return your response in the following **JSON format**:
+You must always return your response in the following strict **JSON format**:
 {
   "meal_plan": {
     "Day Label (like Today, Monday, Tomorrow)": {
@@ -241,7 +241,7 @@ Always return your response in the following **JSON format**:
     ...
   },
   "ingredients": [
-    "List of raw ingredients needed for all meals, let it be unique, no repititions"
+    "List of raw ingredients needed for all meals, each as a unique string with no repetition"
   ]
 }
 
@@ -249,9 +249,21 @@ Guidelines:
 - Return only the meals the user asked for (e.g., if user asks only for dinner, do not return breakfast/lunch).
 - Avoid repeating meals already shown earlier (you’ll receive a list of dishes to avoid).
 - Choose dishes that are common, simple, affordable, and grocery-store friendly.
-- Do not return recipes or instructions — just the dish names and ingredients.
-- Do not include explanations, greetings, or markdown — strictly return only JSON, no other texts wrapping or following the json.
-- You must not answer any other questions, which is not related to meal plan, say 'Sorry I can't help you with that, i am here to help you with planning your meal' just give this one sentence as a response
+- Do NOT return recipes or instructions — just dish names and required ingredients.
+- Do NOT include greetings, explanations, or markdown — return only a single raw JSON object.
+
+Strict JSON Rules:
+- Do NOT wrap any values in extra quotes (e.g., use "Yogurt Parfait", NOT ""Yogurt Parfait"").
+- All keys and values must use standard double quotes (") only.
+- Day labels like "Monday", "Tuesday", etc., must not have extra whitespace or quotes.
+- Never use backslashes, escaped characters, or any invalid symbols inside keys/values.
+- Ensure the output can be parsed using JSON.parse() in JavaScript without error.
+- Do NOT return code blocks, markdown, or any trailing text — only a raw JSON object.
+- Each ingredient must be a unique, plain string — no nesting or formatting.
+- DO NOT include newline characters or line breaks **inside** values.
+
+If the user asks something unrelated to meal planning, respond exactly with:
+"Sorry I can't help you with that, I am here to help you with planning your meal."
 
 Example answer:
 {
@@ -289,13 +301,33 @@ Example answer:
       ],
     });
     let content = response.choices[0].message.content.trim();
+
+    // Remove Markdown code blocks if present
     if (content.startsWith("```")) {
       content = content
         .replace(/```[a-z]*\n?/gi, "")
         .replace(/```$/, "")
         .trim();
     }
-    res.json({ message: content });
+
+    // Sanitize content before sending it to frontend
+    const sanitizeJsonString = (input) => {
+      return input
+        .replace(/,(\s*[}\]])/g, "$1") // Remove trailing commas
+        .replace(/“|”/g, '"') // Replace smart quotes
+        .replace(/(\w+)\s*:/g, '"$1":'); // Ensure keys are quoted (use with care)
+    };
+
+    let sanitized = sanitizeJsonString(content);
+
+    // Validate JSON
+    try {
+      const parsed = JSON.parse(sanitized); // ensures it's valid JSON
+      return res.json({ message: JSON.stringify(parsed, null, 2) }); // well-formatted
+    } catch (err) {
+      console.warn("❌ JSON Parse Failed, sending raw string.");
+      return res.json({ message: sanitized }); // fallback if still broken
+    }
   } catch (err) {
     console.error("Groq API error:", err.message);
     res.status(500).json({
